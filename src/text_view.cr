@@ -1,10 +1,16 @@
 require "./editor_config"
+{% if flag?(:cimento) %}
+require "./cimento/language_manager"
+{% else %}
 require "./language_manager"
+{% end %}
 require "./editor/text_editor"
 require "./ui_builder_helper"
 require "./view"
 
 class TextView < View
+  include Editor::TextBufferListener
+
   @editor = Editor::TextEditor.new
   @lang_manager : LanguageManager
   @trim_trailing_white_space_on_save = true
@@ -38,10 +44,7 @@ class TextView < View
     update_header
 
     @editor.widget.on_key_press_event(&->key_pressed(Gtk::Widget, Gdk::EventKey))
-    @buffer.gobject.connect("notify::cursor-position") { cursor_changed }
-    @buffer.gobject.after_insert_text(&->text_inserted(Gtk::TextBuffer, Gtk::TextIter, String, Int32))
-    @buffer.gobject.after_delete_range(&->text_deleted(Gtk::TextBuffer, Gtk::TextIter, Gtk::TextIter))
-    @buffer.gobject.on_modified_changed { update_header }
+    @buffer.add_text_buffer_listener(self)
   end
 
   def file_path=(file_path : Path) : Nil
@@ -79,42 +82,22 @@ class TextView < View
                          end
 
     start_iter, end_iter = @buffer.selection_bounds
-    end_offset = end_iter.offset
+    start_offset = start_iter.offset
     @buffer.user_action do
+      @buffer.insert(end_iter, end_chr)
+      start_iter = @buffer.iter_at_offset(start_offset)
       @buffer.insert(start_iter, start_chr)
-      start_iter.offset = end_offset + 1
-      @buffer.insert(start_iter, end_chr)
-      start_iter.backward_char
-      @buffer.move_mark("selection_bound", start_iter)
+
+      start_iter, end_iter = @buffer.selection_bounds
+      end_iter.backward_char
+      @buffer.select_range(start_iter, end_iter)
     end
     true
   end
 
   def do_save
-    remove_all_trailing_spaces! if @trim_trailing_white_space_on_save
-    File.write(@file_path.not_nil!, text)
-    @buffer.modified = false
-
+    @buffer.save(@file_path.not_nil!, remove_trailing_spaces: @trim_trailing_white_space_on_save)
     language.notify_did_save(self)
-  end
-
-  private def remove_all_trailing_spaces!
-    original_text = self.text
-    start_iter = Gtk::TextIter.new
-    end_iter = Gtk::TextIter.new
-
-    @buffer.user_action do
-      original_text.split("\n").each_with_index do |line, line_index|
-        next if line.empty? || !line[-1].whitespace?
-
-        match = line.match(/([ \t]+)\r?\z/)
-        next if match.nil?
-
-        @buffer.iter_at_line_offset(start_iter, line_index, match.begin(1).not_nil!)
-        @buffer.iter_at_line_offset(end_iter, line_index, match.end(1).not_nil!)
-        @buffer.delete(start_iter, end_iter)
-      end
-    end
   end
 
   private def setup_editor
@@ -169,12 +152,12 @@ class TextView < View
   end
 
   def create_mark(name : String, line : Int32, column : Int32)
-    iter = @buffer.iter_at_line_offset(line, column)
+    iter = @buffer.iter_at(line, column)
     @buffer.create_mark(name, iter, true)
   end
 
   def update_mark(name : String, line : Int32, column : Int32)
-    iter = @buffer.iter_at_line_offset(line, column)
+    iter = @buffer.iter_at(line, column)
     mark = @buffer.mark(name)
     if mark
       @buffer.move_mark(mark, iter)
@@ -183,14 +166,18 @@ class TextView < View
     end
   end
 
-  private def text_inserted(_buffer, iter, text, _text_size)
+  def text_buffer_text_inserted(iter, text)
     line = iter.line
     col = iter.line_offset
     language.file_changed_by_insertion(self, line, col, text)
   end
 
-  private def text_deleted(buffer, start_iter, end_iter)
+  def text_buffer_text_deleted(start_iter, end_iter)
     language.file_changed_by_deletion(self, start_iter.line, start_iter.line_offset, end_iter.line, end_iter.line_offset)
+  end
+
+  def text_buffer_modified_changed
+    update_header
   end
 
   def reload
@@ -224,11 +211,12 @@ class TextView < View
 
     file_path = @file_path
     project_path = @project_path
+    line = 0
+    col = 0
     if file_path && project_path
-      goto(*TijoloRC.instance.cursor_position(project_path.not_nil!, file_path))
-    else
-      @buffer.place_cursor(0)
+      line, col = TijoloRC.instance.cursor_position(project_path.not_nil!, file_path)
     end
+    goto(line, col)
   end
 
   def next_version
@@ -236,23 +224,19 @@ class TextView < View
   end
 
   def cursor_pos
-    iter = @buffer.iter_at_offset(@buffer.cursor_position)
-    {iter.line, iter.line_offset}
+    iter = @buffer.iter_at_cursor
+    {iter.line, iter.col}
   end
 
   def cursor_pos=(pos : {Int32, Int32})
-    self.cursor_pos = iter_at(*pos)
+    self.cursor_pos = @buffer.iter_at(*pos)
   end
 
-  def cursor_pos=(iter : TextIter)
+  def cursor_pos=(iter : Editor::TextIter)
     @buffer.place_cursor(iter)
   end
 
-  def iter_at(line : Int32, col : Int32) : TextIter
-    @buffer.iter_at_line_offset(line, col)
-  end
-
-  private def cursor_changed
+  def text_buffer_cursor_changed
     line, col = cursor_pos
     line_column_label(line + 1, col + 1)
     notify_view_cursor_location_changed(self, line, col)
@@ -267,7 +251,7 @@ class TextView < View
   delegate search_context, to: @buffer
 
   def goto(line, col)
-    iter = iter_at(line, col)
+    iter = @buffer.iter_at(line, col)
     self.cursor_pos = iter
     @editor.scroll_to(iter)
   end
@@ -275,7 +259,7 @@ class TextView < View
   def goto(cursor : CursorHistory::Cursor)
     mark = @buffer.mark(cursor.mark_name)
     if mark
-      iter = Gtk::TextIter.new
+      iter = Editor::TextIter.new
       @buffer.iter_at_mark(iter, mark)
       @buffer.place_cursor(iter)
       @editor.scroll_to(iter)
@@ -298,6 +282,7 @@ class TextView < View
   def comment_action
     return if readonly? || @language.none?
 
+  {% if !flag?(:cimento) %}
     @buffer.user_action do
       if has_selection?
         comment_selection_action
@@ -305,6 +290,7 @@ class TextView < View
         comment_current_line_action
       end
     end
+  {% end %}
   end
 
   private def comment_regex
@@ -312,10 +298,10 @@ class TextView < View
   end
 
   private def comment_current_line_action
-    iter = @buffer.iter_at_offset(@buffer.cursor_position)
+    iter = @buffer.iter_at_cursor
 
     iter.line_index = 0
-    end_iter = @buffer.iter_at_line_offset(iter.line, Int32::MAX)
+    end_iter = @buffer.iter_at(iter.line, Int32::MAX)
     line = iter.text(end_iter)
     match = comment_regex.match(line)
 

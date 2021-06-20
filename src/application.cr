@@ -1,5 +1,3 @@
-require "./gtk.cr" # monkey patches to to make GTK API more tasty
-
 require "./error"
 require "./ui_builder_helper"
 
@@ -25,59 +23,61 @@ class Application
 
   def initialize(@argv_files : Array(String))
     @application = Gtk::Application.new(application_id: "io.github.hugopl.Tijolo", flags: :non_unique)
-    @application.on_activate(&->activate_ui(Gio::Application))
+    @application.activate_signal.connect(&->activate_ui)
   end
 
-  private def activate_ui(g_app)
+  private def activate_ui : Nil
     @main_window = main_window = Gtk::ApplicationWindow.new(application: @application)
     main_window.maximize
     setup_actions
 
-    builder = builder_for("header_bar")
-    @header_bar = Gtk::HeaderBar.cast(builder["root"])
-    @new_tijolo_btn = Gtk::Button.cast(builder["new_tijolo_btn"])
-    @recent_files_btn = Gtk::MenuButton.cast(builder["recent_files_btn"])
-
-    init_recent_files_menu
-    main_window.titlebar = header_bar
-
+    not_ported!
+    # builder = builder_for("header_bar")
+#     @header_bar = Gtk::HeaderBar.cast(builder["root"])
+#     @new_tijolo_btn = Gtk::Button.cast(builder["new_tijolo_btn"])
+#     @recent_files_btn = Gtk::MenuButton.cast(builder["recent_files_btn"])
+#
+#     init_recent_files_menu
+#     main_window.titlebar = header_bar
+#
     apply_css
 
     init_welcome unless open_project(@argv_files)
-    main_window.show
+    main_window.present
   end
 
   def setup_actions
-    # Hamburguer menu
-    preferences = Gio::SimpleAction.new("preferences", nil)
-    preferences.on_activate { show_preferences_dlg }
-    main_window.add_action(preferences)
-    about = Gio::SimpleAction.new("about", nil)
-    about.on_activate { show_about_dlg }
-    main_window.add_action(about)
-
-    string = GLib::VariantType.new("s")
-    open_recent = Gio::SimpleAction.new("open_recent_file", string)
-    open_recent.on_activate(&->open_recent_file(Gio::SimpleAction, GLib::Variant?))
-    main_window.add_action(open_recent)
-
-    # global actions with shortcuts
-    config = Config.instance
-    actions = {new_file:            ->new_file,
-               new_file_new_split:  ->{ new_file(true) },
-               open_file:           ->open_file,
-               open_file_new_split: ->{ open_file(true) },
-               open_project:        ->start_new_tijolo,
-               new_terminal:        ->new_terminal,
-               fullscreen:          ->fullscreen}
-    actions.each do |name, closure|
-      action = Gio::SimpleAction.new(name.to_s, nil)
-      action.on_activate { closure.call }
-      main_window.add_action(action)
-
-      shortcut = config.shortcuts[name.to_s]
-      set_accels_for_action("win.#{name}", {shortcut})
-    end
+    not_ported!
+#     # Hamburguer menu
+#     preferences = Gio::SimpleAction.new("preferences", nil)
+#     preferences.activate_signal.connect { show_preferences_dlg }
+#     main_window.add_action(preferences)
+#     about = Gio::SimpleAction.new("about", nil)
+#     about.on_activate { show_about_dlg }
+#     main_window.add_action(about)
+#
+#     string = GLib::VariantType.new("s")
+#     open_recent = Gio::SimpleAction.new("open_recent_file", string)
+#     open_recent.on_activate(&->open_recent_file(Gio::SimpleAction, GLib::Variant?))
+#     main_window.add_action(open_recent)
+#
+#     # global actions with shortcuts
+#     config = Config.instance
+#     actions = {new_file:            ->new_file,
+#                new_file_new_split:  ->{ new_file(true) },
+#                open_file:           ->open_file,
+#                open_file_new_split: ->{ open_file(true) },
+#                open_project:        ->start_new_tijolo,
+#                new_terminal:        ->new_terminal,
+#                fullscreen:          ->fullscreen}
+#     actions.each do |name, closure|
+#       action = Gio::SimpleAction.new(name.to_s, nil)
+#       action.on_activate { closure.call }
+#       main_window.add_action(action)
+#
+#       shortcut = config.shortcuts[name.to_s]
+#       set_accels_for_action("win.#{name}", {shortcut})
+#     end
   end
 
   private def init_recent_files_menu
@@ -191,7 +191,8 @@ class Application
     project = Project.new(project_path)
     return false unless project.valid?
 
-    init_ide(project)
+    not_ported!
+    # init_ide(project)
     true
   end
 
@@ -209,20 +210,21 @@ class Application
     files_to_open = paths.reject { |path| Dir.exists?(path) }
     return false if !project.valid? && files_to_open.empty?
 
-    ide = init_ide(project)
-    files_to_open.reverse_each do |file|
-      ide.open_file(file)
-    end
-    true
+    not_ported!
+    false
+    # ide = init_ide(project)
+    # files_to_open.reverse_each do |file|
+    #   ide.open_file(file)
+    # end
+    # true
   end
 
   def init_welcome
     @welcome_wnd = welcome_wnd = WelcomeWindow.new(self)
 
-    header_bar.subtitle = nil
-    child = main_window.child
-    main_window.remove(child) unless child.nil?
-    main_window.add(welcome_wnd.root)
+    not_ported!
+    # header_bar.subtitle = nil
+    main_window.child = welcome_wnd.root
   end
 
   def destroy_welcome
@@ -234,7 +236,8 @@ class Application
     reuse_ide = !@ide_wnd.nil? && project.valid?
     @ide_wnd = ide_wnd = @ide_wnd || IdeWindow.new(self, project)
 
-    header_bar.subtitle = project.valid? ? "Loading Project…" : "No Project"
+    not_ported!
+    # header_bar.subtitle = project.valid? ? "Loading Project…" : "No Project"
 
     if reuse_ide
       ide_wnd.project.root = project.root
@@ -249,8 +252,8 @@ class Application
     ide_wnd
   end
 
-  def run
-    @application.run(nil)
+  def run(argv)
+    @application.run(argv)
   end
 
   def open_another_tijolo_instance?(file : Path) : Bool

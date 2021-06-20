@@ -1,9 +1,12 @@
+macro not_ported!
+  Log.error { "Code not ported at #{__FILE__}:#{__LINE__}" }
+end
+
 require "log"
 require "option_parser"
 
 require "compiled_license"
-require "gobject/gtk"
-require_gobject "GtkSource"
+require "gtk4"
 
 require "./ui_builder_helper"
 require "./observable"
@@ -42,16 +45,11 @@ Config.instance.language_servers_enabled = false if options[:no_lsp]
 #
 # When the project get more mature... if these crashes doesn't get solved I may try to compile my own
 # GTK version BoehmGC aware and static link it to tijolo.
-if options[:gc_disabled]
-  GC.collect
-  GC.disable
-end
 
 begin
-  setup_gtk_source_view
   app = Application.new(options[:locations])
 
-  if options[:gc_disabled] || options[:log_level].debug?
+  if options[:log_level].debug?
     GLib.timeout(60.seconds) do
       Log.info { "NonGTK memory usage: #{GC.stats.heap_size.humanize_bytes}" }
       true
@@ -59,8 +57,7 @@ begin
   end
 
   Log.info { "Language server support disabled." } unless Config.instance.language_servers_enabled?
-
-  app.run
+  app.run(ARGV)
 rescue e : AppError
   Log.fatal { e.message }
   abort

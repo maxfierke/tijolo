@@ -1,22 +1,5 @@
-/* Unset key bindings */
-@binding-set TextViewKeyBindings
-{
-  unbind "<Alt>Right";     /* move-words */
-  unbind "<Alt>Left";      /* move-words */
-  unbind "<Alt>Up";        /* move-lines */
-  unbind "<Alt>Down";      /* move-lines */
-  unbind "<Alt><Shift>Up"; /* move-viewport */
-  unbind "<Alt><Shift>Down"; /* move-viewport */
-
-  bind "<Ctrl><Shift>Up"   { "move-lines" (0) };
-  bind "<Ctrl><Shift>Down" { "move-lines" (1) };
-  bind "<Ctrl>Up"    { "move-viewport" (0, -1) };
-  bind "<Ctrl>Down"  { "move-viewport" (0, 1) };
-}
-
 textview
 {
-  -gtk-key-bindings: TextViewKeyBindings;
   font: 9pt "JetBrainsMono Nerd Font", "Monospace";
 }
 
@@ -200,7 +183,7 @@ paned separator {
   background-color: @tijolo_black;
   font-style: italic;
   font-weight: normal;
-  font-size: 90%
+  font-size: 90%;
 }
 
 messagedialog box box box label {

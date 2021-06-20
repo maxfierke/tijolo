@@ -31,17 +31,7 @@ def usr_share_paths(dir : String, paths = [] of String)
   paths
 end
 
-def setup_gtk_source_view
-  GtkSource.init
-  scheme_manager = GtkSource::StyleSchemeManager.default
-  scheme_manager.search_path = usr_share_paths("styles", scheme_manager.search_path.to_a)
-
-  lang_manager = GtkSource::LanguageManager.default
-  lang_manager.search_path = usr_share_paths("language-specs", lang_manager.search_path.to_a)
-end
-
 def parse_args(argv)
-  gc_disabled = true # Leak all the things! See main.cr
   no_lsp = false
   logfile = nil
   log_level = Config.instance.log_level
@@ -54,9 +44,6 @@ def parse_args(argv)
     end
     parser.on("--debug", "Enable some debug stuff, like log all LSP communication.") { log_level = Log::Severity::Debug }
     parser.on("--no-lsp", "Disable language server protocol support.") { no_lsp = true }
-    parser.on("--enable-gc", "Enable garbage collector (see https://github.com/jhass/crystal-gobject/issues/69).") do
-      gc_disabled = false
-    end
     parser.on("-h", "--help", "Show this help.") do
       puts parser
       exit
@@ -73,7 +60,6 @@ def parse_args(argv)
   end
 
   {locations:   argv,
-   gc_disabled: gc_disabled,
    logfile:     logfile,
    log_level:   log_level,
    no_lsp:      no_lsp}

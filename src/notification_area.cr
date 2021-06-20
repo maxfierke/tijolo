@@ -13,8 +13,7 @@ class NotificationEntry
     icon = Gtk::Label.cast(builder["notification_icon"])
     icon.label = message_icon(entry)
 
-    parent.add(@widget)
-    @widget.show_all
+    parent.append(@widget)
   end
 
   private def message_icon(entry) : String
@@ -52,7 +51,7 @@ class NotificationArea
   end
 
   private def start_counter_to_destroy_notification(notification)
-    @widget.show_all if @num_notifications.zero?
+    @widget.show if @num_notifications.zero?
     @num_notifications += 1
 
     GLib.timeout(Config.instance.notification_delay) do

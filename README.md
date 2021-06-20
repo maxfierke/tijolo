@@ -1,5 +1,9 @@
 <img align="left" src="./icons/tijolo.svg" width="100" height="100" />
 
+# THIS BRANCH STILL A WORKING IN PROGRESS
+
+This is the GTK4 port branch, still a working in progress and probably unusable yet.
+
 # Tijolo
 
 Lightweight, keyboard-oriented IDE for the masses.

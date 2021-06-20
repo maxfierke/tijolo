@@ -1,5 +1,3 @@
-require_gobject "Vte"
-
 module Vte
   class Terminal
     def spawn_async(pty_flags : Vte::PtyFlags,

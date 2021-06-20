@@ -9,7 +9,10 @@ class Language
   getter line_comment : String
   getter id : String
   getter! lsp_client : LspClient?
+
+  {% if !flag?(:cimento) %}
   getter gtk_language : GtkSource::Language?
+  {% end %}
 
   @views_to_open : Array(TextView)?
 
@@ -20,6 +23,7 @@ class Language
 
   @@running_language_servers = Hash(String, LspClient).new
 
+  {% if !flag?(:cimento) %}
   def initialize(gtk_language : GtkSource::Language)
     @id = gtk_language.id
     @line_comment = gtk_language.metadata("line-comment-start").to_s
@@ -37,6 +41,7 @@ class Language
       @lsp_client = start_lsp(cmd)
     end
   end
+  {% end %}
 
   def none?
     @id == NONE_ID

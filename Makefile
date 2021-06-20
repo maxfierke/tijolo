@@ -1,4 +1,4 @@
-.PHONY: all debug install install-fonts uninstall uninstall-fonts
+.PHONY: all debug test cimento install install-fonts uninstall uninstall-fonts
 PREFIX ?= /usr
 
 all:
@@ -8,6 +8,9 @@ debug:
 test:
 	# Some tests need en_US locale to pass on string to float convertions: "1.23" vs "1,23".
 	GC_DONT_GC=1 LC_ALL=en_US.UTF8 xvfb-run crystal spec
+
+cimento:
+	shards build --ignore-crystal-version --error-trace --debug -Dpreview_mt -Dcimento
 
 install:
 	install -D -m 0755 bin/tijolo $(DESTDIR)$(PREFIX)/bin/tijolo

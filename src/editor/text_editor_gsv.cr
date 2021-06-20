@@ -1,6 +1,6 @@
 require "./text_buffer_gsv"
 
-alias TextIter = Gtk::TextIter
+alias Editor::TextIter = Gtk::TextIter
 
 # Wrapper class for GTKSourceView, so we can replace the text editor for a home made solution in the future
 class Editor::TextEditor

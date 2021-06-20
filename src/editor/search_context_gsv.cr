@@ -47,15 +47,15 @@ class Editor::SearchContext
 
   def find(text : String) : TextRange?
     @settings.search_text = text
-    find_impl(@buffer.cursor_position, forward: true)
+    find_impl(@buffer.iter_at_cursor.offset, forward: true)
   end
 
   def find_next : TextRange?
-    find_impl(@buffer.cursor_position + 1, forward: true)
+    find_impl(@buffer.iter_at_cursor.offset + 1, forward: true)
   end
 
   def find_prev : TextRange?
-    find_impl(@buffer.cursor_position, forward: false)
+    find_impl(@buffer.iter_at_cursor.offset, forward: false)
   end
 
   private def find_impl(offset : Int32, forward : Bool)

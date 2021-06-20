@@ -206,7 +206,7 @@ class ProjectTree
   end
 
   class Root < FolderNode
-    getter model = Gtk::TreeStore.new({GObject::Type::UTF8, GObject::Type::BOOLEAN})
+    getter model = Gtk::TreeStore.new(GObject::TYPE_STRING, GObject::TYPE_BOOL)
 
     def initialize
       super("<root>")

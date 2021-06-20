@@ -15,9 +15,9 @@ dependencies:
   fzy:
     github: hugopl/fzy
     version: ~> 0.5
-  gobject:
-    github: jhass/crystal-gobject
-    version: ~> 0.10
+  gtk4:
+    github: hugopl/gtk4.cr
+    branch: master
   compiled_license:
     github: elorest/compiled_license
     version: ~> 1.0

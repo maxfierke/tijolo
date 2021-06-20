@@ -9,18 +9,17 @@ module UiBuilderHelper
   end
 
   protected def apply_css
-    display = Gdk::Display.default.not_nil!
-    screen = display.default_screen
+    display = Gdk::Display.default
     css_provider = Gtk::CssProvider.new
     css_provider.load_from_data(application_css)
-    Gtk::StyleContext.add_provider_for_screen(screen, css_provider, Gtk::STYLE_PROVIDER_PRIORITY_APPLICATION)
+    Gtk::StyleContext.add_provider_for_display(display, css_provider, Gtk::STYLE_PROVIDER_PRIORITY_APPLICATION.to_u32)
   end
 
   private def application_css
     {% if flag?(:release) %}
-      {{ read_file("#{__DIR__}/ui/application.css") }}
+      {{ read_file("#{__DIR__}/ui/application.css") }}.to_slice
     {% else %}
-      File.read("#{__DIR__}/ui/application.css")
+      File.read("#{__DIR__}/ui/application.css").to_slice
     {% end %}
   end
 end
